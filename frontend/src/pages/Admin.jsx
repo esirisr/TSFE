@@ -1,19 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import API from '../api'; // 👈 IMPORT YOUR CUSTOM API INSTANCE
+import axios from 'axios';
 import AdminCard from '../components/AdminCard';
 
 export default function Admin() {
   const [data, setData] = useState({ allPros: [], stats: {} });
   const [loading, setLoading] = useState(true);
   
-  // States for UI feedback
+  // New States for UI feedback
   const [notification, setNotification] = useState({ msg: '', type: '' });
   const [confirmDelete, setConfirmDelete] = useState({ show: false, id: null });
 
   const loadData = async () => {
     try {
-      // API instance handles the Railway URL and Token automatically
-      const res = await API.get('/admin/dashboard');
+      const token = localStorage.getItem('token');
+      const res = await axios.get('https://tsbe-production.up.railway.app/api/admin/dashboard', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setData(res.data);
     } catch (err) {
       console.error("Admin Load Error:", err);
@@ -31,19 +33,23 @@ export default function Admin() {
   useEffect(() => { loadData(); }, []);
 
   const handleAction = async (id, type) => {
+    const token = localStorage.getItem('token');
+    const config = { headers: { Authorization: `Bearer ${token}` } };
+    
     try {
       if (type === 'verify') {
-        await API.patch(`/admin/verify/${id}`);
+        await axios.patch(`https://tsbe-production.up.railway.app/api/admin/verify/${id}`, {}, config);
         showNotification("Professional verified successfully!");
       } else if (type === 'suspend') {
-        await API.patch(`/admin/toggle-suspension/${id}`);
+        await axios.patch(`https://tsbe-production.up.railway.app/api/admin/toggle-suspension/${id}`, {}, config);
         showNotification("Suspension status toggled.");
       } else if (type === 'delete') {
+        // Trigger our custom modal instead of window.confirm
         setConfirmDelete({ show: true, id });
         return; 
       }
       
-      loadData(); // Refresh list after action
+      loadData(); 
     } catch (err) {
       showNotification(err.response?.data?.message || "Action failed!", "error");
     }
@@ -51,8 +57,11 @@ export default function Admin() {
 
   const executeDelete = async () => {
     const { id } = confirmDelete;
+    const token = localStorage.getItem('token');
     try {
-      await API.delete(`/admin/user/${id}`);
+      await axios.delete(`https://tsbe-production.up.railway.app/api/admin/user/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       showNotification("Account permanently deleted.", "success");
       setConfirmDelete({ show: false, id: null });
       loadData();
@@ -61,7 +70,7 @@ export default function Admin() {
     }
   };
 
-  if (loading) return <div style={{textAlign:'center', padding:'100px', color: '#64748b'}}>Loading Console...</div>;
+  if (loading) return <div style={{textAlign:'center', padding:'50px'}}>Loading Console...</div>;
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 20px', position: 'relative' }}>
@@ -82,9 +91,9 @@ export default function Admin() {
       {confirmDelete.show && (
         <div style={modalStyles.overlay}>
           <div style={modalStyles.content}>
-            <h3 style={{marginTop: 0}}>Confirm Deletion</h3>
-            <p style={{color: '#64748b'}}>This action cannot be undone. All data for this professional will be wiped. Are you sure?</p>
-            <div style={{ display: 'flex', gap: '10px', marginTop: '25px' }}>
+            <h3>Confirm Deletion</h3>
+            <p>This action cannot be undone. Are you sure?</p>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
               <button onClick={executeDelete} style={modalStyles.deleteBtn}>Yes, Delete</button>
               <button onClick={() => setConfirmDelete({ show: false, id: null })} style={modalStyles.cancelBtn}>Cancel</button>
             </div>
@@ -92,29 +101,20 @@ export default function Admin() {
         </div>
       )}
 
-      <header style={{ marginBottom: '40px' }}>
-        <h1 style={{fontWeight: '900', fontSize: '2.5rem', margin: 0, color: '#0f172a'}}>Management Console</h1>
-        <p style={{color: '#64748b', marginTop: '5px'}}>Control center for vetting and managing platform experts.</p>
-      </header>
+      <h1 style={{fontWeight: '900', fontSize: '2rem', marginBottom: '30px'}}>Management Console</h1>
       
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '25px' }}>
-        {data.allPros.length > 0 ? (
-          data.allPros.map(pro => (
-            <AdminCard key={pro._id} pro={pro} onAction={handleAction} />
-          ))
-        ) : (
-          <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '50px', color: '#94a3b8', border: '2px dashed #e2e8f0', borderRadius: '16px' }}>
-            No accounts found.
-          </div>
-        )}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '25px' }}>
+        {data.allPros.map(pro => (
+          <AdminCard key={pro._id} pro={pro} onAction={handleAction} />
+        ))}
       </div>
     </div>
   );
 }
 
 const modalStyles = {
-  overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 3000 },
-  content: { backgroundColor: '#fff', padding: '35px', borderRadius: '20px', textAlign: 'center', maxWidth: '400px', width: '90%', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' },
-  deleteBtn: { flex: 1, padding: '14px', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '12px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' },
-  cancelBtn: { flex: 1, padding: '14px', backgroundColor: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '12px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }
+  overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 3000 },
+  content: { backgroundColor: '#fff', padding: '30px', borderRadius: '16px', textAlign: 'center', maxWidth: '400px', width: '90%'},
+  deleteBtn: { flex: 1, padding: '12px', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' },
+  cancelBtn: { flex: 1, padding: '12px', backgroundColor: '#e2e8f0', color: '#475569', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }
 };

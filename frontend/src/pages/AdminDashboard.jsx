@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import API from '../api'; // 👈 IMPORT YOUR CUSTOM API INSTANCE
+import axios from 'axios';
 import AdminCard from '../components/AdminCard';
 
 export default function AdminDashboard() {
@@ -7,11 +7,12 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState({ msg: '', type: '' });
 
-  // ✅ Clean, centralized fetching logic
   const fetchData = async () => {
     try {
-      // API instance handles the BaseURL and the Bearer Token automatically
-      const res = await API.get('/admin/dashboard');
+      const token = localStorage.getItem('token');
+      const res = await axios.get('https://tsbe-production.up.railway.app/api/admin/dashboard', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setPros(res.data.allPros || []);
     } catch (err) {
       console.error("Admin fetch failed", err);
@@ -30,24 +31,24 @@ export default function AdminDashboard() {
     fetchData(); 
   }, []);
 
-  // ✅ Clean action handler using the API instance
   const handleAction = async (id, type) => {
     try {
-      // type will be 'verify', 'reject', or 'delete' based on your backend routes
-      await API.post(`/admin/${type}`, { id });
+      const token = localStorage.getItem('token');
+      await axios.post(`https://tsbe-production.up.railway.app/api/admin/${type}`, { id }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       
       const message = type === 'delete' ? "User removed" : `Status updated: ${type}`;
       showNotification(message, "success");
-      fetchData(); // Refresh the list
+      fetchData(); 
     } catch (err) {
-      console.error("Action failed:", err);
-      showNotification(err.response?.data?.message || "Action failed", "error");
+      showNotification("Action failed", "error");
     }
   };
 
   if (loading) return (
-    <div style={styles.loaderContainer}>
-      <div style={styles.loader}>Loading Admin Console...</div>
+    <div style={{ textAlign: 'center', padding: '100px', fontFamily: 'sans-serif' }}>
+      Loading Admin Console...
     </div>
   );
 
@@ -89,7 +90,7 @@ export default function AdminDashboard() {
   );
 }
 
-// --- STYLES OBJECT ---
+// --- STYLES OBJECT (Centered Layout Fix) ---
 const styles = {
   dashboardWrapper: {
     padding: '40px 20px',
@@ -97,10 +98,10 @@ const styles = {
     minHeight: '100vh',
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center',
+    alignItems: 'center', // Centers the header and grid horizontally
   },
   header: {
-    textAlign: 'center',
+    textAlign: 'center',  // Centered text for title and subtitle
     marginBottom: '50px',
     width: '100%',
   },
@@ -115,28 +116,30 @@ const styles = {
     width: '80px',
     height: '5px',
     backgroundColor: '#3b82f6',
-    margin: '15px auto',
+    margin: '15px auto', // Centers the blue bar
     borderRadius: '10px',
   },
   subtitle: {
     color: '#64748b',
     fontSize: '1.1rem',
     maxWidth: '600px',
-    margin: '0 auto',
+    margin: '0 auto', // Centers the paragraph if it wraps
   },
   gridContainer: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', // Flexible responsive grid
     gap: '30px',
     width: '100%',
     maxWidth: '1300px',
-    justifyContent: 'center',
+    justifyContent: 'center', // Centers cards within the grid container
   },
   notification: {
     position: 'fixed',
     top: '20px',
     left: '50%',
     transform: 'translateX(-50%)',
+
+
     padding: '12px 30px',
     color: '#fff',
     borderRadius: '50px',
@@ -152,13 +155,5 @@ const styles = {
     color: '#94a3b8',
     border: '2px dashed #e2e8f0',
     borderRadius: '20px',
-    width: '100%'
-  },
-  loaderContainer: {
-    textAlign: 'center',
-    padding: '100px',
-    fontFamily: 'sans-serif',
-    backgroundColor: '#f8fafc',
-    height: '100vh'
   }
 };
