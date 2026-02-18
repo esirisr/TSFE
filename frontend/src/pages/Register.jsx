@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import API from '../api'; // 👈 IMPORT YOUR CUSTOM API INSTANCE
 
 export default function Register() {
   const navigate = useNavigate();
@@ -9,7 +9,13 @@ export default function Register() {
   const [status, setStatus] = useState({ msg: '', type: '' });
   
   const [formData, setFormData] = useState({
-    name: '', email: '', password: '', role: 'client', phone: '', location: '', skills: ''
+    name: '', 
+    email: '', 
+    password: '', 
+    role: 'client', 
+    phone: '', 
+    location: '', 
+    skills: ''
   });
 
   const locations = ["Hargeisa", "Burco", "Boorama", "Berbera", "Laascaanood", "Ceerigaabo"];
@@ -21,21 +27,28 @@ export default function Register() {
     setStatus({ msg: '', type: '' });
 
     try {
+      // Clean and format data for the backend
       const dataToSend = {
         ...formData,
+        email: formData.email.toLowerCase().trim(),
         // Ensure skills is sent as an array if user is a pro
-        skills: formData.role === 'pro' && formData.skills ? [formData.skills] : []
+        skills: formData.role === 'pro' && formData.skills ? [formData.skills.toLowerCase()] : []
       };
 
-      await axios.post('http://localhost:5000/api/auth/register', dataToSend);
-      setStatus({ msg: "Registration successful! Taking you to login...", type: 'success' });
+      // ✅ Uses the professional API instance (Railway URL)
+      await API.post('/auth/register', dataToSend);
       
-      setTimeout(() => navigate('/login'), 2500);
+      setStatus({ msg: "Registration successful! Redirecting to login...", type: 'success' });
+      
+      // Navigate to login after a short delay
+      setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
+      console.error("Registration Error:", err);
       setStatus({ 
-        msg: err.response?.data?.message || "Registration failed. Please try again.", 
+        msg: err.response?.data?.message || "Registration failed. Please check your connection.", 
         type: 'error' 
       });
+    } finally {
       setLoading(false);
     }
   };
@@ -49,7 +62,7 @@ export default function Register() {
         </header>
         
         <div style={styles.formGrid}>
-          {/* Row 1: Name, Email, Phone (Phone is now mandatory for everyone) */}
+          {/* Row 1: Basic Info */}
           <div style={styles.inputGroup}>
             <label style={styles.label}>Full Name</label>
             <input type="text" style={styles.input} required placeholder="Ahmed Ali"
@@ -68,12 +81,12 @@ export default function Register() {
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
           </div>
 
-          {/* Row 2: Location and Role Toggle */}
+          {/* Row 2: Location and Role */}
           <div style={styles.inputGroup}>
             <label style={styles.label}>Location (City)</label>
             <select style={styles.input} required value={formData.location}
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}>
-              <option value="">Select your city</option>
+              <option value="">Select city</option>
               {locations.map(loc => <option key={loc} value={loc.toLowerCase()}>{loc}</option>)}
             </select>
           </div>
@@ -92,7 +105,7 @@ export default function Register() {
             </div>
           </div>
 
-          {/* Row 3: Password and Conditional Skill Selector */}
+          {/* Row 3: Password and Skills */}
           <div style={styles.inputGroup}>
             <label style={styles.label}>Password</label>
             <input type="password" style={styles.input} required placeholder="••••••••"
@@ -110,7 +123,7 @@ export default function Register() {
             </div>
           )}
 
-          {/* --- IN-PAGE STATUS MESSAGE --- */}
+          {/* Status Message Display */}
           {status.msg && (
             <div style={{ 
               gridColumn: 'span 3', 
@@ -127,7 +140,7 @@ export default function Register() {
             </div>
           )}
 
-          {/* Submit */}
+          {/* Submit Button */}
           <div style={{ gridColumn: 'span 3', marginTop: '20px' }}>
             <button type="submit" disabled={loading}
               style={{ ...styles.button, backgroundColor: isHovered ? '#334155' : '#000', opacity: loading ? 0.6 : 1 }}
@@ -144,19 +157,20 @@ export default function Register() {
   );
 }
 
+// --- Professional Styling Object ---
 const styles = {
   pageContainer: { display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: '#f8fafc', padding: '20px', boxSizing: 'border-box' },
-  card: { width: '100%', maxWidth: '900px', backgroundColor: '#ffffff', padding: '40px', borderRadius: '20px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.1)', border: '1px solid #e2e8f0' },
+  card: { width: '100%', maxWidth: '850px', backgroundColor: '#ffffff', padding: '40px', borderRadius: '20px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', border: '1px solid #e2e8f0' },
   header: { textAlign: 'center', marginBottom: '30px' },
   title: { margin: '0', fontSize: '28px', fontWeight: '800', color: '#0f172a' },
   subtitle: { margin: '5px 0 0 0', color: '#64748b', fontSize: '15px' },
-  formGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', columnGap: '25px', rowGap: '15px' },
+  formGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', columnGap: '20px', rowGap: '15px' },
   inputGroup: { display: 'flex', flexDirection: 'column' },
   label: { marginBottom: '8px', fontSize: '12px', fontWeight: '700', color: '#334155', textTransform: 'uppercase', letterSpacing: '0.5px' },
-  input: { padding: '12px 16px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#fff' },
-  toggleGroup: { display: 'flex', gap: '15px' },
+  input: { padding: '12px 16px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#fff', transition: '0.2s' },
+  toggleGroup: { display: 'flex', gap: '10px' },
   toggleBtn: { flex: 1, padding: '12px', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px', transition: '0.3s' },
   button: { width: '100%', padding: '16px', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '16px', fontWeight: '800', cursor: 'pointer', transition: '0.3s' },
   footerText: { textAlign: 'center', marginTop: '20px', fontSize: '14px', color: '#64748b' },
-  link: { color: '#3b82f6', textDecoration: 'none', fontWeight: '700' }
+  link: { color: '#000', textDecoration: 'none', fontWeight: '700' }
 };
