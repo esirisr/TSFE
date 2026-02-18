@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: 'https://tsbe-production.up.railway.app/api',
+  baseURL: 'https://tsbe-production.up.railway.app',
 });
 
 // Request Interceptor: Attach token to every outgoing request
