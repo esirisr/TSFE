@@ -1,179 +1,127 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
+import API from '../services/api';
 
 export default function ProDashboard() {
   const [bookings, setBookings] = useState([]);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [notification, setNotification] = useState({ msg: '', type: '' });
 
-  // Memoized fetch to prevent unnecessary re-renders
-  const fetchData = useCallback(async () => {
+  const fetchData = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const headers = { Authorization: `Bearer ${token}` };
-
       const [bookingsRes, profileRes] = await Promise.all([
-        axios.get('https://tsbe-production.up.railway.app/api/bookings/my-bookings', { headers }),
-        axios.get('https://tsbe-production.up.railway.app/api/pros/profile', { headers })
+        API.get('/bookings/my-bookings'),
+        API.get('/pros/profile')
       ]);
 
       setBookings(bookingsRes.data.bookings || []);
       setUser(profileRes.data);
     } catch (err) {
-      console.error("Dashboard Fetch Error:", err.message);
+      console.error("Error fetching dashboard data:", err.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
-
-  const showNotification = (msg, type = 'success') => {
-    setNotification({ msg, type });
-    setTimeout(() => setNotification({ msg: '', type: '' }), 4000);
-  };
+  }, []);
 
   const handleStatusUpdate = async (bookingId, newStatus) => {
     try {
-      const token = localStorage.getItem('token');
-      
-      // LOGIC FIX: Sending 'accepted' instead of 'approved' to satisfy Backend Enum
-      await axios.patch('https://tsbe-production.up.railway.app/api/bookings/update-status', 
-        { 
-          bookingId: bookingId, 
-          status: newStatus 
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      showNotification(`Request ${newStatus} successfully!`);
-      fetchData(); 
+      await API.patch('/bookings/update-status', { bookingId, status: newStatus });
+      fetchData();
     } catch (err) {
-      console.error("400 Error Details:", err.response?.data);
-      showNotification(err.response?.data?.message || "Update failed", "error");
+      alert("Failed to update status");
     }
   };
 
-  if (loading) return <div style={styles.loader}>Opening Professional Workspace...</div>;
+  if (loading) return <div style={{ padding: '100px', textAlign: 'center' }}>Loading Workspace...</div>;
 
   const isVerified = user?.isVerified === true || user?.status === 'approved';
 
   return (
-    <div style={styles.container}>
-      {/* Centered Header Section */}
-      <header style={styles.header}>
-        <h1 style={styles.title}>Professional Workspace</h1>
-        <div style={styles.underline}></div>
-        <p style={styles.subtitle}>Manage your incoming hire requests and track your status.</p>
+    <div style={dashStyles.container}>
+      <header style={dashStyles.header}>
+        <h1 style={dashStyles.title}>Professional Workspace</h1>
+        <p style={dashStyles.subtitle}>Manage your incoming hire requests below</p>
       </header>
 
-      {/* Notification Toast */}
-      {notification.msg && (
-        <div style={{
-          ...styles.notification,
-          backgroundColor: notification.type === 'error' ? '#ef4444' : '#10b981'
-        }}>
-          {notification.msg}
-        </div>
-      )}
+      <div style={dashStyles.grid}>
+        {/* Main Card */}
+        <div style={dashStyles.mainCard}>
+          <h3 style={{ marginBottom: '20px' }}>Incoming Hire Requests</h3>
 
-      <div style={styles.layoutGrid}>
-        {/* Main Section: Requests */}
-        <div style={styles.mainCard}>
-          <h3 style={styles.cardTitle}>Incoming Requests</h3>
-          
-          {bookings.length > 0 ? (
-            bookings.map((req) => (
-              <div key={req._id} style={{
-                ...styles.requestItem,
-                borderLeft: req.status === 'accepted' ? '6px solid #10b981' : req.status === 'rejected' ? '6px solid #ef4444' : '6px solid #f59e0b'
-              }}>
-                <div style={styles.itemContent}>
-                  <div>
-                    <p style={styles.clientName}><strong>Customer:</strong> {req.client?.name || 'Client'}</p>
-                    <p style={styles.clientEmail}>{req.client?.email}</p>
-                    <p style={styles.statusLabel}>
-                      Status: <span style={{ color: req.status === 'accepted' ? '#10b981' : '#64748b', fontWeight: '800' }}>
-                        {req.status.toUpperCase()}
-                      </span>
-                    </p>
-                  </div>
-
-                  {req.status === 'pending' && (
-                    <div style={styles.actionGroup}>
-                      {isVerified ? (
-                        <>
-                          {/* KEY FIX: Value is 'accepted' */}
-                          <button onClick={() => handleStatusUpdate(req._id, 'accepted')} style={styles.btnAccept}>Accept</button>
-                          <button onClick={() => handleStatusUpdate(req._id, 'rejected')} style={styles.btnReject}>Reject</button>
-                        </>
-                      ) : (
-                        <span style={styles.lockedBadge}>Pending Verification</span>
-                      )}
-                    </div>
-                  )}
+          {bookings.length > 0 ? bookings.map(req => (
+            <div key={req._id} style={{
+              ...dashStyles.item,
+              borderLeft: req.status === 'approved' ? '5px solid #10b981' :
+                          req.status === 'rejected' ? '5px solid #ef4444' :
+                          '5px solid #f59e0b'
+            }}>
+              <div style={dashStyles.itemContent}>
+                <div>
+                  <p style={dashStyles.clientName}><strong>Customer:</strong> {req.client?.name}</p>
+                  <p style={dashStyles.clientInfo}><strong>Email:</strong> {req.client?.email}</p>
+                  <p style={dashStyles.statusText}>Status: <span style={{ fontWeight: '800' }}>{req.status.toUpperCase()}</span></p>
                 </div>
+
+                {req.status === 'pending' && isVerified && (
+                  <div style={dashStyles.actions}>
+                    <button onClick={() => handleStatusUpdate(req._id, 'approved')} style={dashStyles.acceptBtn}>Accept</button>
+                    <button onClick={() => handleStatusUpdate(req._id, 'rejected')} style={dashStyles.rejectBtn}>Reject</button>
+                  </div>
+                )}
               </div>
-            ))
-          ) : (
-            <p style={styles.emptyText}>No requests found at this time.</p>
+            </div>
+          )) : (
+            <p style={{ color: '#94a3b8', textAlign: 'center', padding: '20px' }}>No requests yet.</p>
           )}
         </div>
 
-        {/* Side Section: Profile Status */}
-        <aside style={{
-          ...styles.sideCard,
+        {/* Side Card */}
+        <div style={{
+          ...dashStyles.sideCard,
           border: isVerified ? '1px solid #e2e8f0' : '2px solid #fbbf24',
           backgroundColor: isVerified ? '#ffffff' : '#fffdfa'
         }}>
-          <h3 style={styles.sideTitle}>Account Status</h3>
-          <div style={{ 
-            color: isVerified ? '#10b981' : '#ea580c', 
-            fontWeight: '900',
-            display: 'flex', alignItems: 'center', gap: '8px'
+          <h3 style={{ marginBottom: '15px' }}>Profile Status</h3>
+          <div style={{
+            color: isVerified ? '#10b981' : '#ea580c',
+            fontWeight: '800',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
           }}>
-            <span style={{ fontSize: '1.2rem' }}>{isVerified ? '✓' : '●'}</span> 
-            {isVerified ? 'VERIFIED' : 'PENDING'}
+            <span>●</span>
+            {isVerified ? 'Active & Approved' : 'Under Review'}
           </div>
-          <hr style={styles.divider} />
-          <p style={styles.tipText}>
-            {isVerified 
-              ? "You are live! Customers in Hargeisa can now see your profile." 
-              : "An admin is currently reviewing your documents. Please wait for approval."}
+          <div style={dashStyles.divider} />
+          <p style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: '1.6' }}>
+            {isVerified
+              ? "Tip: Accepting requests quickly improves your ranking."
+              : "Your profile is under review. You will be able to accept jobs once an admin approves you."}
           </p>
-        </aside>
+        </div>
       </div>
     </div>
   );
 }
 
-// --- Styles with Centering Logic ---
-const styles = {
-  container: { maxWidth: '1200px', margin: '0 auto', padding: '60px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center' },
-  header: { textAlign: 'center', marginBottom: '50px' },
-  title: { fontSize: '2.8rem', fontWeight: '900', color: '#0f172a', margin: 0 },
-  underline: { width: '60px', height: '4px', backgroundColor: '#3b82f6', margin: '12px auto', borderRadius: '10px' },
+const dashStyles = {
+  container: { maxWidth: '1200px', margin: '0 auto', padding: '40px 20px' },
+  header: { marginBottom: '30px' },
+  title: { fontSize: '2.5rem', fontWeight: '900' },
   subtitle: { color: '#64748b', fontSize: '1.1rem' },
-  notification: { position: 'fixed', top: '25px', padding: '12px 30px', color: '#fff', borderRadius: '50px', zIndex: 1000, fontWeight: 'bold', boxShadow: '0 10px 20px rgba(0,0,0,0.1)' },
-  layoutGrid: { display: 'grid', gridTemplateColumns: '1fr 320px', gap: '30px', width: '100%' },
-  mainCard: { backgroundColor: '#fff', padding: '35px', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' },
-  sideCard: { padding: '25px', borderRadius: '24px', height: 'fit-content' },
-  cardTitle: { margin: '0 0 25px 0', fontSize: '1.4rem', color: '#1e293b' },
-  requestItem: { backgroundColor: '#f8fafc', padding: '20px', borderRadius: '16px', marginBottom: '15px', border: '1px solid #f1f5f9' },
+  grid: { display: 'grid', gridTemplateColumns: '1fr 300px', gap: '30px' },
+  mainCard: { backgroundColor: '#fff', padding: '30px', borderRadius: '20px', border: '1px solid #e2e8f0' },
+  sideCard: { padding: '25px', borderRadius: '20px', height: 'fit-content' },
+  item: { backgroundColor: '#f8fafc', padding: '20px', borderRadius: '12px', marginBottom: '15px' },
   itemContent: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  clientName: { margin: 0, fontSize: '1.1rem', color: '#1e293b' },
-  clientEmail: { margin: '2px 0', fontSize: '0.85rem', color: '#64748b' },
-  statusLabel: { margin: '8px 0 0 0', fontSize: '0.85rem' },
-  actionGroup: { display: 'flex', gap: '10px' },
-  btnAccept: { padding: '10px 24px', backgroundColor: '#10b981', color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold' },
-  btnReject: { padding: '10px 24px', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold' },
-  lockedBadge: { color: '#f59e0b', fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase' },
-  sideTitle: { margin: '0 0 10px 0', fontSize: '1.1rem' },
-  divider: { border: 'none', borderTop: '1px solid #e2e8f0', margin: '15px 0' },
-  tipText: { fontSize: '0.85rem', color: '#64748b', lineHeight: '1.5' },
-  emptyText: { textAlign: 'center', color: '#94a3b8', padding: '40px' },
-  loader: { textAlign: 'center', padding: '100px', fontSize: '1.2rem', color: '#64748b' }
+  clientName: { margin: '0', fontSize: '1.1rem' },
+  clientInfo: { margin: '5px 0', color: '#64748b', fontSize: '0.9rem' },
+  statusText: { margin: '5px 0', fontSize: '0.85rem' },
+  actions: { display: 'flex', gap: '10px' },
+  acceptBtn: { padding: '10px 20px', backgroundColor: '#10b981', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' },
+  rejectBtn: { padding: '10px 20px', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' },
+  divider: { height: '1px', backgroundColor: '#e2e8f0', margin: '15px 0' }
 };

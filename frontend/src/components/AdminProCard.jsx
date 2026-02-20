@@ -35,7 +35,7 @@ export default function AdminProCard({ pro, onDelete, onSuspend }) {
 
       <div style={styles.adminActionGroup}>
         <button
-          onClick={() => onSuspend(pro._id, 'suspend')}
+          onClick={() => onSuspend(pro._id)}
           style={{
             ...styles.button,
             backgroundColor: pro.isSuspended ? '#22c55e' : '#f59e0b',
@@ -47,9 +47,7 @@ export default function AdminProCard({ pro, onDelete, onSuspend }) {
         
         <button
           onClick={() => {
-            // NO ALERT/CONFIRM: 
-            // We call the parent's onDelete, which triggers the custom UI modal
-            onDelete(pro._id, 'delete');
+            if(window.confirm(`Permanently delete ${pro.name}?`)) onDelete(pro._id);
           }}
           style={{ ...styles.button, backgroundColor: '#ef4444', color: '#fff' }}
         >
@@ -61,7 +59,7 @@ export default function AdminProCard({ pro, onDelete, onSuspend }) {
 }
 
 const styles = {
-  card: { position: 'relative', padding: '40px 24px 24px 24px', borderRadius: '24px', backgroundColor: '#ffffff', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', transition: 'all 0.3s ease', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' },
+  card: { position: 'relative', padding: '40px 24px 24px 24px', borderRadius: '24px', backgroundColor: '#ffffff', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', transition: 'all 0.3s ease' },
   ribbon: { marginBottom: '12px', padding: '4px 12px', borderRadius: '20px', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase' },
   header: { marginBottom: '16px' },
   name: { fontSize: '1.3rem', fontWeight: '800', margin: '0 0 5px 0', color: '#0f172a', textTransform: 'capitalize' },
@@ -70,5 +68,5 @@ const styles = {
   infoSection: { display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px', color: '#475569', fontSize: '0.9rem' },
   infoRow: { display: 'flex', alignItems: 'center', gap: '8px' },
   adminActionGroup: { display: 'flex', gap: '8px', width: '100%' },
-  button: { flex: 1, padding: '12px 5px', borderRadius: '12px', fontWeight: '700', fontSize: '13px', border: 'none', cursor: 'pointer', transition: 'opacity 0.2s' }
+  button: { flex: 1, padding: '12px 5px', borderRadius: '12px', fontWeight: '700', fontSize: '13px', border: 'none', cursor: 'pointer' }
 };

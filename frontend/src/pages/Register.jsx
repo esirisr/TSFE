@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import { register } from '../services/api';
 
 export default function Register() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [status, setStatus] = useState({ msg: '', type: '' });
-  
   const [formData, setFormData] = useState({
-    name: '', email: '', password: '', role: 'client', phone: '', location: '', skills: ''
+    name: '',
+    email: '',
+    password: '',
+    role: 'client',
+    phone: '',
+    location: '',
+    skills: ''
   });
 
   const locations = ["Hargeisa", "Burco", "Boorama", "Berbera", "Laascaanood", "Ceerigaabo"];
@@ -18,24 +22,19 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setStatus({ msg: '', type: '' });
 
     try {
       const dataToSend = {
         ...formData,
-        // Ensure skills is sent as an array if user is a pro
         skills: formData.role === 'pro' && formData.skills ? [formData.skills] : []
       };
 
-      await axios.post('https://tsbe-production.up.railway.app/api/auth/register', dataToSend);
-      setStatus({ msg: "Registration successful! Taking you to login...", type: 'success' });
-      
-      setTimeout(() => navigate('/login'), 2500);
+      await register(dataToSend);
+      alert("Registration successful!");
+      navigate('/login');
     } catch (err) {
-      setStatus({ 
-        msg: err.response?.data?.message || "Registration failed. Please try again.", 
-        type: 'error' 
-      });
+      alert(err.response?.data?.message || "Registration failed.");
+    } finally {
       setLoading(false);
     }
   };
@@ -45,11 +44,10 @@ export default function Register() {
       <form style={styles.card} onSubmit={handleSubmit}>
         <header style={styles.header}>
           <h2 style={styles.title}>Create Account</h2>
-          <p style={styles.subtitle}>Join HOME-MAN as a Client or Professional</p>
+          <p style={styles.subtitle}>Select your city and join the community</p>
         </header>
-        
+
         <div style={styles.formGrid}>
-          {/* Row 1: Name, Email, Phone (Phone is now mandatory for everyone) */}
           <div style={styles.inputGroup}>
             <label style={styles.label}>Full Name</label>
             <input type="text" style={styles.input} required placeholder="Ahmed Ali"
@@ -63,19 +61,18 @@ export default function Register() {
           </div>
 
           <div style={styles.inputGroup}>
-            <label style={styles.label}>Phone Number</label>
-            <input type="tel" style={styles.input} required placeholder="+252..."
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
-          </div>
-
-          {/* Row 2: Location and Role Toggle */}
-          <div style={styles.inputGroup}>
             <label style={styles.label}>Location (City)</label>
             <select style={styles.input} required value={formData.location}
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}>
               <option value="">Select your city</option>
               {locations.map(loc => <option key={loc} value={loc.toLowerCase()}>{loc}</option>)}
             </select>
+          </div>
+
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Password</label>
+            <input type="password" style={styles.input} required placeholder="••••••••"
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
           </div>
 
           <div style={{ ...styles.inputGroup, gridColumn: 'span 2' }}>
@@ -92,47 +89,30 @@ export default function Register() {
             </div>
           </div>
 
-          {/* Row 3: Password and Conditional Skill Selector */}
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Password</label>
-            <input type="password" style={styles.input} required placeholder="••••••••"
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
-          </div>
-
           {formData.role === 'pro' && (
-            <div style={{ ...styles.inputGroup, gridColumn: 'span 2' }}>
-              <label style={styles.label}>Primary Skill / Trade</label>
-              <select style={styles.input} required value={formData.skills}
-                onChange={(e) => setFormData({ ...formData, skills: e.target.value })}>
-                <option value="">Select your trade</option>
-                {skillOptions.map(skill => <option key={skill} value={skill.toLowerCase()}>{skill}</option>)}
-              </select>
-            </div>
+            <>
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>Phone Number</label>
+                <input type="tel" style={styles.input} required placeholder="+252..."
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
+              </div>
+
+              <div style={{ ...styles.inputGroup, gridColumn: 'span 2' }}>
+                <label style={styles.label}>Primary Skill / Trade</label>
+                <select style={styles.input} required value={formData.skills}
+                  onChange={(e) => setFormData({ ...formData, skills: e.target.value })}>
+                  <option value="">Select your trade</option>
+                  {skillOptions.map(skill => <option key={skill} value={skill.toLowerCase()}>{skill}</option>)}
+                </select>
+              </div>
+            </>
           )}
 
-          {/* --- IN-PAGE STATUS MESSAGE --- */}
-          {status.msg && (
-            <div style={{ 
-              gridColumn: 'span 3', 
-              padding: '15px', 
-              borderRadius: '10px',
-              textAlign: 'center',
-              fontSize: '14px',
-              backgroundColor: status.type === 'success' ? '#dcfce7' : '#fee2e2',
-              color: status.type === 'success' ? '#166534' : '#991b1b',
-              border: `1px solid ${status.type === 'success' ? '#bbf7d0' : '#fecaca'}`,
-              marginTop: '10px'
-            }}>
-              {status.msg}
-            </div>
-          )}
-
-          {/* Submit */}
           <div style={{ gridColumn: 'span 3', marginTop: '20px' }}>
             <button type="submit" disabled={loading}
-              style={{ ...styles.button, backgroundColor: isHovered ? '#334155' : '#000', opacity: loading ? 0.6 : 1 }}
+              style={{ ...styles.button, backgroundColor: isHovered ? '#334155' : '#000' }}
               onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
-              {loading ? 'Creating Account...' : 'Register Now'}
+              {loading ? 'Processing...' : 'Register Now'}
             </button>
             <p style={styles.footerText}>
               Already have an account? <Link to="/login" style={styles.link}>Login here</Link>

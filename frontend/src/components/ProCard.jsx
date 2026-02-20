@@ -10,6 +10,7 @@ export default function ProCard({ pro, onAction, userBookings = [] }) {
   const displayName = data.businessName || data.name || "Provider";
   const displaySkill = (data.skills && data.skills.length > 0) ? data.skills[0] : (data.businessCategory || "Professional");
 
+  // RATING LOGIC: Check if user has an accepted/approved job to rate
   const bookingToRate = userBookings.find(b => 
     b.professional?._id === data._id && 
     (b.status === 'approved' || b.status === 'accepted') && 
@@ -25,36 +26,31 @@ export default function ProCard({ pro, onAction, userBookings = [] }) {
         { bookingId: bookingToRate._id, ratingValue: val }, 
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      onAction("Rating submitted! Thank you."); 
+      alert("Rating submitted! Thank you.");
+      onAction(); 
     } catch (err) {
-      onAction("Error saving rating.", "error");
+      alert("Error saving rating.");
     }
   };
 
   const handleHire = async () => {
     const hasPending = userBookings.some(b => b.professional?._id === data._id && b.status === 'pending');
     if (hasPending) {
-      onAction(`You already have a pending order for this ${displaySkill.toLowerCase()}!`, "error");
+      alert(`You already ordered one ${displaySkill.toLowerCase()}! Please wait.`);
       return;
     }
-
     try {
       const token = localStorage.getItem('token');
-      if (!token) {
-        onAction("Please login first to hire professionals.", "error");
-        return;
-      }
+      if (!token) return alert("Please login first.");
       setIsBooking(true);
       await axios.post('http://localhost:5000/api/bookings/create', { proId: data._id }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      onAction("Hiring request sent successfully!");
+      alert("Hiring request sent successfully!");
+      onAction();
     } catch (err) {
       const msg = err.response?.data?.message || "";
-      const errorMsg = msg.includes("limit") 
-        ? `Daily limit reached for this ${displaySkill}.` 
-        : "Booking failed. Please try again.";
-      onAction(errorMsg, "error");
+      alert(msg.includes("limit") ? `Daily limit reached for this ${displaySkill}.` : "Booking failed.");
     } finally {
       setIsBooking(false);
     }
@@ -64,51 +60,22 @@ export default function ProCard({ pro, onAction, userBookings = [] }) {
     <div 
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      style={{
-        ...styles.card, 
-        transform: isHovered ? 'translateY(-8px)' : 'none',
-        boxShadow: isHovered ? '0 12px 25px rgba(0,0,0,0.1)' : '0 4px 15px rgba(0,0,0,0.05)'
-      }}
+      style={{...styles.card, transform: isHovered ? 'translateY(-10px)' : 'none'}}
     >
+      <div style={styles.statusBadge}>● Active & Verified</div>
+
       <div style={styles.header}>
-   
         <h2 style={styles.name}>{displayName}</h2>
         <div style={styles.skillTag}>{displaySkill}</div>
       </div>
 
       <div style={styles.infoSection}>
-        {/* Increased font size for location and phone */}
-        <div style={styles.infoPill}>📍 {data.location || "Hargeisa"}</div>
+        <div>📍 {data.location || "Laascaanood"}</div>
+        <div>📞 {data.phone || "N/A"}</div>
       </div>
 
       <div style={styles.footer}>
-        
-        {/* RATING SECTION: Now placed above the button */}
-        <div style={styles.ratingSectionTop}>
-          <div style={styles.starRow}>
-            {[1, 2, 3, 4, 5].map((s) => (
-              <span
-                key={s}
-                onMouseEnter={() => canRate && setHoverStar(s)}
-                onMouseLeave={() => canRate && setHoverStar(0)}
-                onClick={() => canRate && handleRate(s)}
-                style={{
-                  ...styles.star,
-                  color: s <= (hoverStar || Math.round(data.rating || 0)) ? '#f59e0b' : '#e2e8f0',
-                  cursor: canRate ? 'pointer' : 'default',
-                }}
-              >★</span>
-            ))}
-          </div>
-          <div style={styles.ratingLabel}>
-            <strong>{averageRating}</strong> <span style={{color: '#94a3b8'}}>({data.reviewCount || 0} reviews)</span>
-          </div>
-          {canRate && <div style={styles.rateNowText}>Please rate your experience!</div>}
-        </div>
-
-        <div style={styles.availability}>
-           Availability <span>{data.dailyRequestCount || 0}/3</span>
-        </div>
+        <div style={styles.availability}>Availability <span>{data.dailyRequestCount || 0}/3</span></div>
         <div style={styles.progressBg}>
           <div style={{...styles.progressFill, width: `${((data.dailyRequestCount || 0) / 3) * 100}%`}} />
         </div>
@@ -118,134 +85,62 @@ export default function ProCard({ pro, onAction, userBookings = [] }) {
           disabled={isBooking || data.dailyRequestCount >= 3}
           style={{
             ...styles.hireButton,
-            backgroundColor: (isBooking || data.dailyRequestCount >= 3) ? '#94a3b8' : '#6366f1'
+            backgroundColor: (isBooking || data.dailyRequestCount >= 3) ? '#94a3b8' : '#4f46e5'
           }}
         >
-          {data.dailyRequestCount >= 3 ? 'Limit Reached' : (isBooking ? 'Processing...' : `Hire ${displaySkill}`)}
+          {data.dailyRequestCount >= 3 ? 'Limit Reached' : (isBooking ? '...' : `Hire ${displaySkill}`)}
         </button>
+
+        {/* --- RATING SECTION MOVED UNDER HIRE BUTTON --- */}
+        <div style={styles.ratingSection}>
+          <div style={styles.starRow}>
+            {[1, 2, 3, 4, 5].map((s) => (
+              <span
+                key={s}
+                onMouseEnter={() => canRate && setHoverStar(s)}
+                onMouseLeave={() => canRate && setHoverStar(0)}
+                onClick={() => canRate && handleRate(s)}
+                style={{
+                  fontSize: '24px',
+                  cursor: canRate ? 'pointer' : 'default',
+                  color: s <= (hoverStar || data.rating) ? '#f59e0b' : '#e2e8f0',
+                  padding: '0 2px'
+                }}
+              >★</span>
+            ))}
+          </div>
+          <div style={styles.ratingLabel}>
+            <strong>{averageRating}</strong> ({data.reviewCount || 0} reviews)
+          </div>
+          {canRate && <div style={styles.rateNowText}>Please rate this professional!</div>}
+        </div>
       </div>
     </div>
   );
 }
 
 const styles = {
-  card: { 
-    position: 'relative', 
-    padding: '30px 25px', 
-    borderRadius: '28px', 
-    backgroundColor: '#fff', 
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
-    display: 'flex', 
-    flexDirection: 'column', 
-    border: '1px solid #f1f5f9',
-    textAlign: 'center'
-  },
-  header: { 
-    marginBottom: '15px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center'
-  },
-  badge: {
-    fontSize: '10px',
-    fontWeight: '800',
-    color: '#10b981',
-    backgroundColor: '#ecfdf5',
-    padding: '4px 12px',
-    borderRadius: '20px',
-    marginBottom: '10px',
-    display: 'inline-block'
-  },
-  name: { 
-    fontSize: '1.55rem', 
-    fontWeight: '900', 
-    margin: '0 0 4px 0', 
-    color: '#0f172a',
-    letterSpacing: '-0.02em'
-  },
-  skillTag: { 
-    fontSize: '12px', 
-    color: '#4338ca', 
-    fontWeight: '800', 
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em'
-  },
-  infoSection: { 
-    marginBottom: '20px', 
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '10px'
-  },
-  infoPill: {
-    fontSize: '15px', // Increased font size as requested
-    fontWeight: '600',
-    color: '#334155',
-    backgroundColor: '#f8fafc',
-    padding: '8px 20px',
-    borderRadius: '14px',
-    width: 'fit-content',
-    border: '1px solid #f1f5f9'
-  },
+  card: { position: 'relative', padding: '25px', borderRadius: '24px', backgroundColor: '#fff', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', transition: '0.3s ease', display: 'flex', flexDirection: 'column', border: '1px solid #f1f5f9' },
+  statusBadge: { position: 'absolute', top: '15px', right: '15px', backgroundColor: '#dcfce7', color: '#166534', padding: '4px 10px', borderRadius: '20px', fontSize: '10px', fontWeight: 'bold' },
+  header: { marginBottom: '15px' },
+  name: { fontSize: '1.4rem', fontWeight: '900', margin: '0 0 5px 0' },
+  skillTag: { fontSize: '11px', color: '#4338ca', fontWeight: 'bold', textTransform: 'uppercase' },
+  infoSection: { marginBottom: '20px', fontSize: '14px', color: '#475569', lineHeight: '1.6' },
   footer: { marginTop: 'auto' },
-  // Rating styling for its new position
-  ratingSectionTop: {
-    marginBottom: '20px',
+  availability: { display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#94a3b8', marginBottom: '5px', fontWeight: '600' },
+  progressBg: { height: '6px', backgroundColor: '#f1f5f9', borderRadius: '10px', marginBottom: '15px', overflow: 'hidden' },
+  progressFill: { height: '100%', backgroundColor: '#6366f1', transition: 'width 0.3s' },
+  hireButton: { width: '100%', padding: '14px', color: '#fff', border: 'none', borderRadius: '14px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '15px' },
+  // NEW RATING STYLES
+  ratingSection: { 
+    borderTop: '1px solid #f1f5f9', 
+    paddingTop: '15px', 
+    textAlign: 'center',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center'
   },
-  availability: { 
-    display: 'flex', 
-    justifyContent: 'space-between', 
-    fontSize: '12px', 
-    color: '#64748b', 
-    marginBottom: '8px', 
-    fontWeight: '700',
-    padding: '0 5px'
-  },
-  progressBg: { 
-    height: '8px', 
-    backgroundColor: '#f1f5f9', 
-    borderRadius: '10px', 
-    marginBottom: '20px', 
-    overflow: 'hidden' 
-  },
-  progressFill: { 
-    height: '100%', 
-    background: 'linear-gradient(90deg, #6366f1, #818cf8)', 
-    transition: 'width 0.5s ease-out' 
-  },
-  hireButton: { 
-    width: '100%', 
-    padding: '16px', 
-    color: '#fff', 
-    border: 'none', 
-    borderRadius: '18px', 
-    fontSize: '15px',
-    fontWeight: '800', 
-    cursor: 'pointer', 
-    transition: 'all 0.2s ease',
-    boxShadow: '0 4px 12px rgba(99, 102, 241, 0.2)'
-  },
-  starRow: { 
-    display: 'flex', 
-    gap: '2px',
-    marginBottom: '4px' 
-  },
-  star: {
-    fontSize: '24px', // Slightly larger stars
-    transition: 'transform 0.2s ease'
-  },
-  ratingLabel: { 
-    fontSize: '14px', 
-    color: '#1e293b' 
-  },
-  rateNowText: { 
-    fontSize: '11px', 
-    color: '#10b981', 
-    fontWeight: '800', 
-    marginTop: '5px',
-    textTransform: 'uppercase'
-  }
+  starRow: { display: 'flex', justifyContent: 'center', marginBottom: '5px' },
+  ratingLabel: { fontSize: '13px', color: '#64748b' },
+  rateNowText: { fontSize: '11px', color: '#10b981', fontWeight: 'bold', marginTop: '5px' }
 };

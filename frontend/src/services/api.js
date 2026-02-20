@@ -1,10 +1,11 @@
 import axios from 'axios';
 
-const API = axios.create({
-  baseURL: 'https://tsbe-production.up.railway.app/api',
-});
+//const API = axios.create({ baseURL: 'http://localhost:5000/api' });
 
-// Request Interceptor: Attach token to every outgoing request
+const API = axios.create({ baseURL: 'https://hbe-production.up.railway.app/api' });
+
+
+// ---- Attach JWT automatically ----
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -13,28 +14,30 @@ API.interceptors.request.use((config) => {
   return config;
 });
 
-// Response Interceptor: Global error handling (e.g., redirect on 401)
+// ---- Handle Unauthorized globally ----
 API.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
-      // Optional: window.location.href = '/login';
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }
 );
 
-// --- Auth Functions ---
+// ---------------- AUTH ----------------
 export const login = (data) => API.post('/auth/login', data);
 export const register = (data) => API.post('/auth/register', data);
 
-// --- Professional Functions ---
-export const fetchPros = () => API.get('/pros/all'); 
+// ---------------- PROFESSIONALS ----------------
+export const fetchPros = () => API.get('/pros/all');
 export const requestService = (id) => API.post(`/pros/request/${id}`);
 
-// --- Admin Functions ---
-export const fetchPendingPros = () => API.get('/admin/pending');
-export const verifyPro = (id) => API.put(`/admin/verify/${id}`);
+// ---------------- ADMIN ----------------
+export const fetchDashboard = () => API.get('/admin/dashboard');
+export const verifyPro = (id) => API.patch(`/admin/verify/${id}`);
+export const suspendPro = (id) => API.patch(`/admin/toggle-suspension/${id}`);
+export const deleteUser = (id) => API.delete(`/admin/user/${id}`);
 
 export default API;

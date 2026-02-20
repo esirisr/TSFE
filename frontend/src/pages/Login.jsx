@@ -1,66 +1,91 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import { login } from '../services/api';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [status, setStatus] = useState({ msg: '', isError: false });
+  const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setStatus({ msg: '', isError: false });
 
     try {
-      const res = await axios.post('https://tsbe-production.up.railway.app/api/auth/login', { 
-        email: email.toLowerCase().trim(), // Ensure clean data
-        password 
-      });
+      const res = await login({ email, password });
 
-      // CRITICAL: Save email for ProtectedRoute/SmartHome logic
-      localStorage.setItem('token', res.data.token);
-      localStorage.setItem('role', res.data.role);
-      localStorage.setItem('email', res.data.user.email); 
+      const { token, role } = res.data;
 
-      setStatus({ msg: "Success! Redirecting...", isError: false });
+      localStorage.setItem('token', token);
+      localStorage.setItem('role', role);
 
-      // Use window.location to refresh the app state with new localStorage data
-      setTimeout(() => {
-        window.location.href = '/'; 
-      }, 1000);
+      if (role === 'admin') navigate('/admin');
+      else if (role === 'pro') navigate('/pro-dashboard');
+      else if (role === 'client') navigate('/client-home');
+      else navigate('/');
+
+      alert("Welcome back!");
 
     } catch (err) {
-      setStatus({ 
-        msg: err.response?.data?.message || "Login failed. Please check credentials.", 
-        isError: true 
-      });
+      alert(err.response?.data?.message || "Login failed");
     }
   };
 
   return (
-    <div style={{ height: '80vh', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8fafc' }}>
-      <form onSubmit={handleLogin} style={formStyle}>
-        <h2 style={{ textAlign: 'center', marginBottom: '20px', fontWeight: '800' }}>Login</h2>
+    <div style={{ height: '80vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+      <form
+        onSubmit={handleLogin}
+        style={{
+          padding: '40px',
+          backgroundColor: '#fff',
+          borderRadius: '16px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+          width: '400px'
+        }}
+      >
+        <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>
+          Login
+        </h2>
 
-        {status.msg && (
-          <div style={{
-            ...messageStyle,
-            backgroundColor: status.isError ? '#fee2e2' : '#dcfce7',
-            color: status.isError ? '#991b1b' : '#166534',
-            border: `1px solid ${status.isError ? '#fecaca' : '#bbf7d0'}`
-          }}>
-            {status.msg}
-          </div>
-        )}
+        <input
+          type="email"
+          placeholder="Email"
+          style={inputStyle}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
 
-        <input type="email" placeholder="Email" style={inputStyle} onChange={(e) => setEmail(e.target.value)} required />
-        <input type="password" placeholder="Password" style={inputStyle} onChange={(e) => setPassword(e.target.value)} required />
-        <button type="submit" style={buttonStyle}>Sign In</button>
+        <input
+          type="password"
+          placeholder="Password"
+          style={inputStyle}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+
+        <button type="submit" style={buttonStyle}>
+          Sign In
+        </button>
       </form>
     </div>
   );
 }
 
-const formStyle = { padding: '40px', backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', width: '400px' };
-const inputStyle = { width: '100%', padding: '12px', marginBottom: '15px', border: '1px solid #e2e8f0', borderRadius: '8px', boxSizing: 'border-box' };
-const buttonStyle = { width: '100%', padding: '12px', backgroundColor: '#000', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' };
-const messageStyle = { padding: '12px', marginBottom: '20px', borderRadius: '8px', fontSize: '14px', textAlign: 'center' };
+const inputStyle = {
+  width: '100%',
+  padding: '12px',
+  marginBottom: '15px',
+  border: '1px solid #e2e8f0',
+  borderRadius: '8px',
+  boxSizing: 'border-box'
+};
+
+const buttonStyle = {
+  width: '100%',
+  padding: '12px',
+  backgroundColor: '#000',
+  color: '#fff',
+  border: 'none',
+  borderRadius: '8px',
+  fontWeight: 'bold',
+  cursor: 'pointer'
+};

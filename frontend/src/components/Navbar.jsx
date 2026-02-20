@@ -22,7 +22,7 @@ export default function Navbar() {
             {/* Links for Guest Users */}
             <NavLink to="/">Home</NavLink>
             <NavLink to="/login">Login</NavLink>
-            <NavLink to="/register" isBtn>Join US</NavLink>
+            <NavLink to="/register" isBtn>Join as Pro</NavLink>
           </>
         ) : (
           <>

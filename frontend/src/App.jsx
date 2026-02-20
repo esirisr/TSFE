@@ -11,42 +11,36 @@ import ClientHome from './pages/ClientHome';
 // Scroll to top on every route change
 const ScrollToTop = () => {
   const { pathname } = useLocation();
-  useEffect(() => { 
-    window.scrollTo({ top: 0, behavior: 'smooth' }); 
-  }, [pathname]);
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
   return null;
 };
 
-// --- Updated ProtectedRoute ---
-// No Alerts: Redirects automatically if unauthorized
+// Updated ProtectedRoute with Smart Redirects
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const token = localStorage.getItem('token');
   const userRole = localStorage.getItem('role'); 
   
-  if (!token) {
-    // If not logged in, send to login. 
-    // The Login page will show its own inline error if they got here by mistake.
-    return <Navigate to="/login" replace />;
-  }
+  if (!token) return <Navigate to="/login" replace />;
   
   if (allowedRoles && !allowedRoles.includes(userRole)) {
-    // If the role doesn't match, send them to their specific dashboard
-    // This prevents "Access Denied" alerts.
+    // Redirect logic: Send them where they belong
     if (userRole === 'pro') return <Navigate to="/pro-dashboard" replace />;
     if (userRole === 'admin') return <Navigate to="/admin" replace />;
-    return <Navigate to="/client-home" replace />;
+    if (userRole === 'client') return <Navigate to="/client-home" replace />;
+    return <Navigate to="/" replace />;
   }
   
   return children;
 };
 
-// --- Smart Home Component ---
+// Smart Home Component: Decides what the user sees at "/"
 const SmartHome = () => {
   const token = localStorage.getItem('token');
   const role = localStorage.getItem('role');
 
-  if (!token) return <Home />; 
+  if (!token) return <Home />; // Show landing page to guests
   
+  // Auto-redirect logged-in users to their workspace
   if (role === 'admin') return <Navigate to="/admin" replace />;
   if (role === 'pro') return <Navigate to="/pro-dashboard" replace />;
   return <Navigate to="/client-home" replace />;
@@ -60,6 +54,7 @@ function App() {
         <Navbar />
         <main style={styles.mainContent}>
           <Routes>
+            {/* Logic-based Home route */}
             <Route path="/" element={<SmartHome />} />
             
             {/* Auth Routes */}
@@ -91,7 +86,6 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
-        
         <footer style={styles.footer}>
           <p>© 2026 HOME-MAN Platform. All rights reserved.</p>
         </footer>
@@ -107,12 +101,12 @@ const styles = {
     flexDirection: 'column', 
     backgroundColor: '#f8fafc', 
     fontFamily: "'Inter', sans-serif",
-    overflowX: 'hidden' 
+    overflowX: 'hidden' // Prevents horizontal scroll bugs
   },
   mainContent: { 
     flex: 1, 
     width: '100%', 
-    maxWidth: '1400px', 
+    maxWidth: '1400px', // Slightly wider for 4-column grids on large monitors
     margin: '0 auto', 
     padding: '20px', 
     boxSizing: 'border-box' 

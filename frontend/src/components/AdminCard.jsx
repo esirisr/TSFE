@@ -4,15 +4,10 @@ export default function AdminCard({ pro, onAction }) {
   const [isHovered, setIsHovered] = useState(false);
   
   const isPending = !pro.isVerified;
-  
-  // RATING LOGIC (Customer Feedback)
+
+  // STRICT RATING LOGIC: Ensures new pros show 0.0, not 5.0
   const isUnrated = !pro.reviewCount || pro.reviewCount === 0;
   const displayRating = isUnrated ? "0.0" : Number(pro.rating).toFixed(1);
-
-  // REGISTRATION DATA (Pro-Provided)
-  // Note: Register.jsx sends location as 'location' and skills as an array ['trade']
-  const proLocation = pro.location || 'Not specified';
-  const proTrade = Array.isArray(pro.skills) ? pro.skills[0] : pro.skills;
 
   return (
     <div 
@@ -24,57 +19,34 @@ export default function AdminCard({ pro, onAction }) {
         border: isPending ? '2px dashed #3b82f6' : '1px solid #e2e8f0',
       }}
     >
-      {/* Verification Badge */}
       <div style={{
         ...styles.statusHeader, 
-        backgroundColor: isPending ? '#eff6ff' : '#f0fdf4'
+        backgroundColor: isPending ? '#eff6ff' : '#f0f9ff'
       }}>
         <span style={{
-          color: isPending ? '#3b82f6' : '#16a34a', 
-          fontWeight: '900', fontSize: '11px', letterSpacing: '0.8px'
+          color: isPending ? '#3b82f6' : '#0284c7', 
+          fontWeight: 'bold', fontSize: '11px'
         }}>
-          {isPending ? '⏳ NEW REGISTRATION' : '✅ VERIFIED PROFESSIONAL'}
+          {isPending ? '⏳ PENDING APPROVAL' : '✅ LIVE ON PLATFORM'}
         </span>
       </div>
 
       <div style={styles.content}>
-        {/* IDENTITY SECTION */}
-   
-
-        {/* REGISTRATION DETAILS (Dropdown Data) */}
-        <div style={styles.infoGrid}>
-          <div style={styles.infoItem}>
-            <span style={styles.label}>Registered Location</span>
-            <span style={styles.value}>📍 {proLocation}</span>
+        <h2 style={styles.name}>{pro.name}</h2>
+        <p style={styles.email}>{pro.email}</p>
+        
+        <div style={styles.statsRow}>
+          {/* AVAILABILITY SECTION REMOVED FROM HERE */}
+          <div style={styles.statItem}>
+            <span style={styles.statLabel}>Current Rating</span>
+            <span style={{...styles.statValue, color: isUnrated ? '#94a3b8' : '#f59e0b'}}>
+              ⭐ {displayRating} ({pro.reviewCount || 0})
+            </span>
           </div>
-          <div style={styles.infoItem}>
-            <span style={styles.label}>Contact Phone</span>
-            <span style={styles.value}>📞 {pro.phone}</span>
-          </div>
-        </div>
-
-        <div style={styles.infoItem}>
-           <span style={styles.label}>Registered Email</span>
-           <span style={styles.value}>{pro.email}</span>
         </div>
 
         <div style={styles.divider} />
 
-        {/* PERFORMANCE SECTION (Customer Data) */}
-        <div style={styles.ratingRow}>
-          <div style={styles.ratingBox}>
-            <span style={styles.label}>Avg Rating</span>
-            <span style={{...styles.ratingText, color: isUnrated ? '#94a3b8' : '#f59e0b'}}>
-              ⭐ {displayRating}
-            </span>
-          </div>
-          <div style={styles.ratingBox}>
-            <span style={styles.label}>Review Count</span>
-            <span style={styles.value}>{pro.reviewCount || 0} Total</span>
-          </div>
-        </div>
-
-        {/* ADMIN ACTIONS */}
         <div style={styles.buttonGroup}>
           {isPending && (
             <button 
@@ -98,20 +70,16 @@ export default function AdminCard({ pro, onAction }) {
 }
 
 const styles = {
-  card: { backgroundColor: '#fff', borderRadius: '16px', overflow: 'hidden', transition: '0.3s ease', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column' },
-  statusHeader: { padding: '12px', textAlign: 'center' },
-  content: { padding: '24px', display: 'flex', flexDirection: 'column', gap: '15px' },
-  section: { marginBottom: '5px' },
-  name: { fontSize: '1.4rem', fontWeight: '800', margin: '0 0 5px 0', color: '#0f172a' },
-  tradeBadge: { display: 'inline-block', backgroundColor: '#000', color: '#fff', fontSize: '11px', fontWeight: '900', padding: '5px 12px', borderRadius: '6px' },
-  infoGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' },
-  infoItem: { display: 'flex', flexDirection: 'column' },
-  label: { fontSize: '10px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' },
-  value: { fontSize: '14px', fontWeight: '600', color: '#334155', textTransform: 'capitalize' },
-  divider: { height: '1px', backgroundColor: '#f1f5f9', margin: '5px 0' },
-  ratingRow: { display: 'flex', gap: '20px', backgroundColor: '#f8fafc', padding: '15px', borderRadius: '12px' },
-  ratingBox: { flex: 1 },
-  ratingText: { fontSize: '18px', fontWeight: '900', display: 'block' },
-  buttonGroup: { display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' },
-  actionBtn: { width: '100%', padding: '14px', borderRadius: '10px', color: '#fff', border: 'none', fontWeight: '800', cursor: 'pointer', fontSize: '13px' }
+  card: { backgroundColor: '#fff', borderRadius: '16px', overflow: 'hidden', transition: 'all 0.3s ease', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column' },
+  statusHeader: { padding: '10px', textAlign: 'center', borderBottom: '1px solid #e2e8f0' },
+  content: { padding: '24px' },
+  name: { fontSize: '1.25rem', fontWeight: '800', margin: '0 0 4px 0' },
+  email: { fontSize: '14px', color: '#64748b', marginBottom: '20px' },
+  statsRow: { display: 'flex', gap: '20px', marginBottom: '20px' },
+  statItem: { display: 'flex', flexDirection: 'column' },
+  statLabel: { fontSize: '10px', color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase' },
+  statValue: { fontSize: '14px', fontWeight: '700' },
+  divider: { height: '1px', backgroundColor: '#f1f5f9', marginBottom: '20px' },
+  buttonGroup: { display: 'flex', flexDirection: 'column', gap: '10px' },
+  actionBtn: { width: '100%', padding: '12px', borderRadius: '12px', color: '#fff', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }
 };
